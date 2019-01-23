@@ -5,6 +5,7 @@ from ctypes.wintypes import *
 PWSTR = LPWSTR
 PVOID = c_void_p
 ACCESS_MASK = DWORD
+ULONG_PTR = PVOID
 
 
 class _SYSTEM_HANDLE(Structure):
@@ -47,6 +48,7 @@ class SYSTEM_HANDLE_INFORMATION_EX(Structure):
         ("Reserved", PVOID),
         ("Handles", SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX * 1),
 ]
+
 
 class _LSA_UNICODE_STRING(Structure):
     _fields_ = [
@@ -105,6 +107,7 @@ class __PUBLIC_OBJECT_TYPE_INFORMATION(Structure):
 PPUBLIC_OBJECT_TYPE_INFORMATION = POINTER(__PUBLIC_OBJECT_TYPE_INFORMATION)
 PUBLIC_OBJECT_TYPE_INFORMATION = __PUBLIC_OBJECT_TYPE_INFORMATION
 
+
 class _PUBLIC_OBJECT_BASIC_INFORMATION(Structure):
     _fields_ = [
         ("Attributes", ULONG),
@@ -115,3 +118,18 @@ class _PUBLIC_OBJECT_BASIC_INFORMATION(Structure):
     ]
 PUBLIC_OBJECT_BASIC_INFORMATION = _PUBLIC_OBJECT_BASIC_INFORMATION
 PPUBLIC_OBJECT_BASIC_INFORMATION = POINTER(_PUBLIC_OBJECT_BASIC_INFORMATION)
+
+
+class PROCESSENTRY32(Structure):
+    _fields_ = [
+        ("dwSize", DWORD),
+        ("cntUsage", DWORD),
+        ("th32ProcessID", DWORD),
+        ("th32DefaultHeapID", ULONG_PTR),
+        ("th32ModuleID", DWORD),
+        ("cntThreads", DWORD),
+        ("th32ParentProcessID", DWORD),
+        ("pcPriClassBase", LONG),
+        ("dwFlags", DWORD),
+        ("szExeFile", CHAR * MAX_PATH),
+    ]

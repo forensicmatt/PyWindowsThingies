@@ -4,8 +4,37 @@ import ctypes
 from winthingies.win32.const import *
 from winthingies.win32.psapi import psapi
 from winthingies.win32.kernel32 import kernel32
+from winthingies.win32.winstructs import *
 
 LOGGER = logging.getLogger(__name__)
+
+
+def iterate_processes():
+    process_entry = PROCESSENTRY32()
+    process_entry.dwSize = ctypes.sizeof(
+        process_entry
+    )
+
+    snapshot = kernel32.CreateToolhelp32Snapshot(
+        TH32CS_SNAPPROCESS,
+        0
+    )
+
+    kernel32.Process32First(
+        snapshot,
+        process_entry
+    )
+
+    yield Process.by_pid(
+        process_entry.th32ProcessID,
+        access=PROCESS_QUERY_LIMITED_INFORMATION
+    )
+
+    while kernel32.Process32Next(snapshot, process_entry):
+        yield Process.by_pid(
+            process_entry.th32ProcessID,
+            access=PROCESS_QUERY_LIMITED_INFORMATION
+        )
 
 
 class Process(object):
@@ -36,9 +65,9 @@ class Process(object):
         return full_path
 
     @staticmethod
-    def by_pid(pid):
+    def by_pid(pid, access=PROCESS_ALL_ACCESS):
         process_handle = kernel32.OpenProcess(
-            PROCESS_ALL_ACCESS,
+            access,
             False,
             pid
         )
@@ -49,6 +78,13 @@ class Process(object):
         )
 
         return process
+
+    def as_dict(self):
+        return {
+            "name": self.name,
+            "path": self.path,
+            "pid": self.pid
+        }
 
     def __del__(self):
         res = kernel32.CloseHandle(
