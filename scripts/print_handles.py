@@ -1,5 +1,3 @@
-import sys
-sys.path.append("..")
 import ujson
 import logging
 import argparse

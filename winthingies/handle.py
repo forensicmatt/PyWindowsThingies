@@ -1,11 +1,11 @@
 import logging
 from ctypes import wintypes
 from winthingies.runtime import CURRENT_PROCESS
+from winthingies.process import Process
 from winthingies.win32.const import *
 from winthingies.win32.ntdll import ntdll
 from winthingies.win32.kernel32 import kernel32
 from winthingies.win32.winstructs import *
-from winthingies.process import Process
 
 LOGGER = logging.getLogger(__name__)
 

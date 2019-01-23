@@ -9,9 +9,11 @@ setup(
     url='https://github.com/forensicmatt/PyWindowsThingies',
     license='Apache License (2.0)',
     packages=[
-        'winthingies'
+        'winthingies',
+        'winthingies.win32'
     ],
     install_requires=[
+		'pywin32',
         'ujson'
     ],
     scripts=[
