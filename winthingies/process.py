@@ -9,7 +9,7 @@ from winthingies.win32.winstructs import *
 LOGGER = logging.getLogger(__name__)
 
 
-def iterate_processes():
+def iterate_processes(name=None):
     process_entry = PROCESSENTRY32()
     process_entry.dwSize = ctypes.sizeof(
         process_entry
@@ -25,16 +25,28 @@ def iterate_processes():
         process_entry
     )
 
-    yield Process.by_pid(
+    process = Process.by_pid(
         process_entry.th32ProcessID,
         access=PROCESS_QUERY_LIMITED_INFORMATION
     )
 
+    if name is not None:
+        if name.lower() == process.name.lower():
+            yield process
+    else:
+        yield process
+
     while kernel32.Process32Next(snapshot, process_entry):
-        yield Process.by_pid(
+        process = Process.by_pid(
             process_entry.th32ProcessID,
             access=PROCESS_QUERY_LIMITED_INFORMATION
         )
+
+        if name is not None:
+            if name.lower() == process.name.lower():
+                yield process
+        else:
+            yield process
 
 
 class Process(object):

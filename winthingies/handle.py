@@ -13,6 +13,53 @@ ObjectNameInformation = 1
 ObjectDataInformation = 2
 
 
+def get_handle_name_by_object_id(object_id, handle_type=None):
+    """Return a handle by the address.
+
+    :param object_id: (u64)
+    :param handle_type: (None|str)
+    :return: (Handle|None)
+    """
+    system_handle_information = SYSTEM_HANDLE_INFORMATION_EX()
+    size = DWORD(sizeof(system_handle_information))
+
+    while True:
+        result = ntdll.NtQuerySystemInformation(
+            SystemExtendedHandleInformation,
+            byref(system_handle_information),
+            size,
+            byref(size)
+        )
+        if result == STATUS_SUCCESS:
+            break
+        elif result == STATUS_INFO_LENGTH_MISMATCH:
+            size = DWORD(
+                size.value * 4
+            )
+
+            resize(
+                system_handle_information,
+                size.value
+            )
+        else:
+            raise Exception("NtQuerySystemInformation", hex(result))
+
+    handles = cast(
+        system_handle_information.Handles,
+        POINTER(
+            Handle * \
+            system_handle_information.NumberOfHandles
+        )
+    )
+    for handle in handles.contents:
+        if handle.Object == object_id:
+            if handle_type:
+                if handle.type_name == handle_type:
+                    return handle.name
+            else:
+                return handle.name
+
+
 def iterate_handles(pid=None):
     system_handle_information = SYSTEM_HANDLE_INFORMATION_EX()
     size = DWORD(sizeof(system_handle_information))
@@ -163,16 +210,15 @@ class Handle(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX):
 
         return handle_name
 
-    def get_local_handle(self):
+    def get_local_handle(self, current_process=CURRENT_PROCESS):
         """Get a local copy of the handle.
 
         :return: (int)
         """
-        if self.UniqueProcessId == CURRENT_PROCESS.pid:
+        if self.UniqueProcessId == current_process.pid:
             return self.HandleValue
 
         local_handle = wintypes.HANDLE()
-        current_process = CURRENT_PROCESS
 
         # We need to run this in a timeout thread to insure no hanging
         # https://social.technet.microsoft.com/Forums/en-US/7f8c7ef3-398a-4a4e-b9e6-17145bc9a708/ntqueryobject-hanging?forum=windowsinternals
