@@ -97,7 +97,10 @@ class TraceConsumer(threading.Thread):
 
             this[name] = data
 
-        self._callback(this)
+        if self._callback:
+            self._callback(this)
+        else:
+            print(ujson.dumps(this))
 
 
 class TraceProperties(object):
