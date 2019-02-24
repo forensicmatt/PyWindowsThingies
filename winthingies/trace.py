@@ -1,6 +1,7 @@
-import re
+import time
 import ujson
 import ctypes
+import logging
 import threading
 from winthingies.win32.const import *
 from winthingies.win32.winstructs import *
@@ -17,10 +18,19 @@ DEFAULT_NT_KERNEL_LOGGER_FLAGS = (
     EVENT_TRACE_FLAG_REGISTRY |
     EVENT_TRACE_FLAG_DISK_IO
 )
+LOGGER = logging.getLogger(__name__)
 
 
 class TraceConsumer(threading.Thread):
+    """Consume events from a started session
+    https://docs.microsoft.com/en-us/windows/desktop/etw/about-event-tracing#consumers
+    """
     def __init__(self, logger_name, callback):
+        """
+
+        :param logger_name: The session name to consume events from.
+        :param callback: The function callback to pass each event record to.
+        """
         self._event_trace_logfile = EVENT_TRACE_LOGFILE()
         self._trace_handle = None
         self._callback = callback
@@ -40,6 +50,10 @@ class TraceConsumer(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
+        """Start the thread and process events.
+
+        :return: (None)
+        """
         self._trace_handle = advapi32.OpenTraceW(
             ctypes.byref(self._event_trace_logfile)
         )
@@ -62,6 +76,10 @@ class TraceConsumer(threading.Thread):
                 raise ctypes.WinError()
 
     def stop(self):
+        """Stop the thread.
+
+        :return:
+        """
         self._stop_flag.set()
 
         advapi32.CloseTrace(
@@ -71,11 +89,14 @@ class TraceConsumer(threading.Thread):
     def _event_callback(self, event_record):
         """This function gets called for events.
 
-        :param event:
-        :return:
+        :param event_record: (EVENT_RECORD)
+        :return: (None)
         """
         event_information = event_record.contents.get_event_information()
 
+        # This is how we can get the raw record if we wanted to run re filters to
+        # decide which events get processed. (for future use but left commented
+        # as a note)
         # event_data = b''.join(
         #     [ctypes.cast(event_record.contents.UserData + i, PBYTE).contents
         #       for i in range(event_record.contents.UserDataLength)]
@@ -92,7 +113,8 @@ class TraceConsumer(threading.Thread):
                     event_record,
                     event_information
                 )
-            except:
+            except Exception as error:
+
                 data = None
 
             this[name] = data
@@ -326,5 +348,42 @@ class TraceSession(object):
 
 
 class EventTraceHandler(object):
-    def __init__(self):
-        pass
+    """The EventTraceHandler will handle both starting providers for event generation
+    and starting the consumer for event handling. Using this class allows you to
+    use KeyboardInterrupt to stop consumption.
+    """
+    def __init__(self, session_name, providers, callback):
+        """
+
+        :param session_name: (str) Then name to use for this session. ('NT Kernel Logger'
+                                    must be used if Kernel trace providers are used)
+        :param providers: (list<TraceProvider>) This is a list of TraceProvider objects.
+        :param callback: (function) This gets called for every event.
+        """
+        self._session_name = session_name
+        self._providers = providers
+        self._callback = callback
+
+    def start_session(self):
+        """This starts the tracing session.
+
+        :return: (None)
+        """
+        t_session = TraceSession(
+            self._session_name,
+            self._providers
+        )
+        t_session.start()
+
+        t_consumer = TraceConsumer(
+            self._session_name,
+            self._callback
+        )
+        t_consumer.start()
+
+        try:
+            while True:
+                time.sleep(.25)
+        except KeyboardInterrupt:
+            t_consumer.stop()
+            t_consumer.join()

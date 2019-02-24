@@ -9,9 +9,8 @@ import datetime
 import win32api
 import win32con
 from functools import partial
+from winthingies.trace import EventTraceHandler
 from winthingies.trace import TraceProvider
-from winthingies.trace import TraceSession
-from winthingies.trace import TraceConsumer
 from winthingies.process import iterate_processes
 from winthingies.handle import iterate_handles
 
@@ -214,19 +213,12 @@ def main():
         u"{70EB4F03-C1DE-4F73-A051-33D13D5413BD}"
     )
 
-    t_session = TraceSession(
-        u"UserAssist Mon",
-        [provider_kernel_trace]
-    )
-    t_session.start()
-
-    t_consumer = TraceConsumer(
-        u"UserAssist Mon",
+    event_trace_handler = EventTraceHandler(
+        "UserAssist Mon",
+        [provider_kernel_trace],
         partial(UserAssistMonitor.event_callback, userassist_mon)
     )
-    t_consumer.start()
-    t_consumer.join()
-    t_session.stop()
+    event_trace_handler.start_session()
 
 
 if __name__ == "__main__":
