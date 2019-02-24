@@ -1,0 +1,8 @@
+session_name: Registry Value Changes
+providers:
+  - name: Microsoft-Windows-Kernel-Registry
+    guid: "{70EB4F03-C1DE-4F73-A051-33D13D5413BD}"
+filter:
+  query: "ValueName"
+output:
+  format: "{record['TimeStamp']}: {record['ValueName']}"

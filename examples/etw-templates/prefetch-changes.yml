@@ -1,0 +1,9 @@
+session_name: NT Kernel Logger
+providers:
+  - name: Windows Kernel Trace
+    guid: "{9E814AAD-3204-11D2-9A82-006008A86939}"
+    match_any_keyword: 0x04000000
+filter:
+  query: "ends_with(to_string(OpenPath), '.pf')"
+output:
+  format: "{record['TimeStamp']}: {record['OpenPath']}"
