@@ -17,6 +17,18 @@ DECODING_SOURCE = ctypes.c_uint
 PROPERTY_FLAGS = ctypes.c_uint
 TDH_CONTEXT_TYPE = ctypes.c_uint
 MAP_FLAGS = ctypes.c_uint
+EVT_HANDLE = HANDLE
+INT8 = c_byte
+INT16 = SHORT
+INT32 = INT
+INT64 = LONGLONG
+UINT8 = BYTE
+UINT16 = USHORT
+UINT32 = UINT
+UINT64 = ULONGLONG
+PSID = PVOID
+SIZE_T = c_size_t
+EVT_OBJECT_ARRAY_PROPERTY_HANDLE = HANDLE
 
 
 # Thanks to https://github.com/fireeye/pywintrace/blob/master/etw/common.py#L90
@@ -566,3 +578,56 @@ class PROPERTY_DATA_DESCRIPTOR(Structure):
 
 class IN6_ADDR(Structure):
     _fields_ = [('Byte', c_byte * 16)]
+
+
+# https://docs.microsoft.com/en-us/windows/desktop/api/winevt/ns-winevt-_evt_variant
+class EVT_VARIANT_UNION(Union):
+    _fields_ = [
+        ("BooleanVal", BOOL),
+        ("SByteVal", INT8),
+        ("Int16Val", INT16),
+        ("Int32Val", INT32),
+        ("Int64Val", INT64),
+        ("ByteVal", UINT8),
+        ("UInt16Val", UINT16),
+        ("UInt32Val", UINT32),
+        ("UInt64Val", UINT64),
+        ("SingleVal", FLOAT),
+        ("DoubleVal", DOUBLE),
+        ("FileTimeVal", ULONGLONG),
+        ("SysTimeVal", POINTER(SYSTEMTIME)),
+        ("GuidVal", POINTER(GUID)),
+        ("StringVal", LPCWSTR),
+        ("AnsiStringVal", LPCSTR),
+        ("BinaryVal", PBYTE),
+        ("SidVal", PSID),
+        ("SizeTVal", SIZE_T),
+        ("EvtHandleVal", EVT_HANDLE),
+        ("BooleanArr", POINTER(BOOL)),
+        ("SByteArr", POINTER(INT8)),
+        ("Int16Arr", POINTER(INT16)),
+        ("Int32Arr", POINTER(INT32)),
+        ("Int64Arr", POINTER(INT64)),
+        ("ByteArr", POINTER(UINT8)),
+        ("UInt16Arr", POINTER(UINT16)),
+        ("UInt32Arr", POINTER(UINT32)),
+        ("UInt64Arr", POINTER(UINT64)),
+        ("SingleArr", POINTER(FLOAT)),
+        ("DoubleArr", POINTER(DOUBLE)),
+        ("FileTimeArr", POINTER(FILETIME)),
+        ("SysTimeArr", POINTER(SYSTEMTIME)),
+        ("GuidArr", POINTER(GUID)),
+        ("StringArr", POINTER(LPWSTR)),
+        ("AnsiStringArr", POINTER(LPSTR)),
+        ("SidArr", POINTER(PSID)),
+        ("SizeTArr", POINTER(SIZE_T)),
+        ("XmlVal", LPCWSTR),
+        ("XmlValArr", POINTER(LPCWSTR)),
+]
+class EVT_VARIANT(Structure):
+    _fields_ = [
+        ("_VARIANT_VALUE", EVT_VARIANT_UNION),
+        ("Count", DWORD),
+        ("Type", DWORD),
+]
+PEVT_VARIANT = POINTER(EVT_VARIANT)

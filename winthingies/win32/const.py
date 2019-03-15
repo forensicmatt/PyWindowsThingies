@@ -228,3 +228,47 @@ TDH_OUTTYPE_CULTURE_INSENSITIVE_DATETIME = 33
 TDH_OUTTYPE_JSON = 34
 TDH_OUTTYPE_REDUCEDSTRING = 300
 TDH_OUTTYPE_NOPRIN = 301
+
+# https://docs.microsoft.com/en-us/windows/desktop/api/winevt/ne-winevt-_evt_publisher_metadata_property_id
+EvtPublisherMetadataPublisherGuid = 0x0
+EvtPublisherMetadataResourceFilePath = 0x1
+EvtPublisherMetadataParameterFilePath = 0x2
+EvtPublisherMetadataMessageFilePath = 0x3
+EvtPublisherMetadataHelpLink = 0x4
+EvtPublisherMetadataPublisherMessageID = 0x5
+EvtPublisherMetadataChannelReferences = 0x6
+EvtPublisherMetadataChannelReferencePath = 0x7
+EvtPublisherMetadataChannelReferenceIndex = 0x8
+EvtPublisherMetadataChannelReferenceID = 0x9
+EvtPublisherMetadataChannelReferenceFlags = 0xa
+EvtPublisherMetadataChannelReferenceMessageID = 0xb
+EvtPublisherMetadataLevels = 0xc
+EvtPublisherMetadataLevelName = 0xd
+EvtPublisherMetadataLevelValue = 0xe
+EvtPublisherMetadataLevelMessageID = 0xf
+EvtPublisherMetadataTasks = 0x10
+EvtPublisherMetadataTaskName = 0x11
+EvtPublisherMetadataTaskEventGuid = 0x12
+EvtPublisherMetadataTaskValue = 0x13
+EvtPublisherMetadataTaskMessageID = 0x14
+EvtPublisherMetadataOpcodes = 0x15
+EvtPublisherMetadataOpcodeName = 0x16
+EvtPublisherMetadataOpcodeValue = 0x17
+EvtPublisherMetadataOpcodeMessageID = 0x18
+EvtPublisherMetadataKeywords = 0x19
+EvtPublisherMetadataKeywordName = 0x1a
+EvtPublisherMetadataKeywordValue = 0x1b
+EvtPublisherMetadataKeywordMessageID = 0x1c
+EvtPublisherMetadataPropertyIdEND = 0x1d
+
+# https://docs.microsoft.com/en-us/windows/desktop/api/winevt/ne-winevt-_evt_format_message_flags
+EvtFormatMessageEvent = 0x1
+EvtFormatMessageLevel = 0x2
+EvtFormatMessageTask = 0x3
+EvtFormatMessageOpcode = 0x4
+EvtFormatMessageKeyword = 0x5
+EvtFormatMessageChannel = 0x6
+EvtFormatMessageProvider = 0x7
+EvtFormatMessageId = 0x8
+EvtFormatMessageXml = 0x9
+

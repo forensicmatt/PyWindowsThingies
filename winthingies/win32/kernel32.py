@@ -6,6 +6,7 @@ kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
 
 kernel32.GetCurrentProcess.restype = HANDLE
+kernel32.GetLastError.restype = DWORD
 
 
 kernel32.OpenProcess.restype = HANDLE
