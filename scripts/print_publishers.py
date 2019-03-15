@@ -1,3 +1,5 @@
+import sys
+sys.path.append("..")
 import argparse
 from winthingies.win32.wevtapi import *
 from winthingies.win32.wevtapi_helpers import get_keyword_mapping
