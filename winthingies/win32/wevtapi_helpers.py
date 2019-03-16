@@ -3,6 +3,45 @@ from winthingies.win32.wevtapi import *
 from winthingies.win32.kernel32 import kernel32
 
 
+class PublisherMetadata(object):
+    def __init__(self, publisher_name):
+        self.publisher_name = publisher_name
+        self._handle = None
+        self._handle = EvtOpenPublisherMetadata(
+            self.publisher_name
+        )
+
+    @property
+    def keyword_mapping(self):
+        return get_keyword_mapping(
+            self._handle
+        )
+
+    @property
+    def guid(self):
+        variant = EvtGetPublisherMetadataProperty(
+            self._handle,
+            EvtPublisherMetadataPublisherGuid
+        )
+
+        if variant:
+            guid = variant._VARIANT_VALUE.GuidVal
+            return str(guid.contents)
+
+    def as_json(self):
+        info = {
+            "guid": self.guid,
+            "keywords": self.keyword_mapping
+        }
+        return info
+
+    def __del__(self):
+        if self._handle is not None:
+            wevtapi.EvtClose(
+                self._handle
+            )
+
+
 def get_keyword_mapping(metadata_handle):
     """Get a dictionary of keyword info.
 
@@ -16,6 +55,9 @@ def get_keyword_mapping(metadata_handle):
         metadata_handle,
         EvtPublisherMetadataKeywords
     )
+
+    if meta_prop_variant is None:
+        return
 
     array_handle = meta_prop_variant._VARIANT_VALUE.EvtHandleVal
     array_size = byref(DWORD())

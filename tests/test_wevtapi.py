@@ -4,6 +4,29 @@ from winthingies.win32.wevtapi_helpers import get_keyword_mapping
 
 
 class TestProvider(unittest.TestCase):
+    def test_get_providers(self):
+        publisher_list_handle = EvtOpenPublisherEnum()
+
+        publisher_list = []
+        while True:
+            publisher_name = EvtNextPublisherId(publisher_list_handle)
+            if publisher_name is not None:
+                publisher_list.append(
+                    publisher_name
+                )
+            else:
+                break
+
+        self.assertEqual(True, bool("Microsoft-Windows-Kernel-File" in publisher_list))
+        self.assertEqual(True, bool("Microsoft-Windows-Kernel-Registry" in publisher_list))
+
+        for publisher_name in sorted(publisher_list):
+            print(publisher_name)
+
+        wevtapi.EvtClose(
+            publisher_list_handle
+        )
+
     def test_get_metadata(self):
         """PublisherMetadata is needed to map keyword descriptions to their flag.
 

@@ -1,4 +1,6 @@
 import re
+import ctypes
+import struct
 from ctypes import Structure
 from ctypes.wintypes import *
 
@@ -9,12 +11,13 @@ RE_GUID_STRING = re.compile(
     re.I
 )
 
+
 class GUID(Structure):
     _fields_ = [
         ("Data1", DWORD),
         ("Data2", WORD),
         ("Data3", WORD),
-        ("Data4", BYTE * 8)
+        ("Data4", ctypes.c_ubyte * 8)
     ]
 
     @staticmethod
@@ -37,3 +40,22 @@ class GUID(Structure):
             guid.Data4[i] = g[3 + i]
 
         return guid
+
+    def __str__(self):
+        raw_buffer = ctypes.string_at(
+            ctypes.byref(self),
+            ctypes.sizeof(self)
+        )
+        return "{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}".format(
+            struct.unpack("<L", raw_buffer[0:4])[0],
+            struct.unpack("<H", raw_buffer[4:6])[0],
+            struct.unpack("<H", raw_buffer[6:8])[0],
+            struct.unpack("<B", raw_buffer[8:9])[0],
+            struct.unpack("<B", raw_buffer[9:10])[0],
+            struct.unpack("<B", raw_buffer[10:11])[0],
+            struct.unpack("<B", raw_buffer[11:12])[0],
+            struct.unpack("<B", raw_buffer[12:13])[0],
+            struct.unpack("<B", raw_buffer[13:14])[0],
+            struct.unpack("<B", raw_buffer[14:15])[0],
+            struct.unpack("<B", raw_buffer[15:16])[0]
+        )

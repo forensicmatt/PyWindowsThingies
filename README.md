@@ -1,5 +1,5 @@
 #  Cool win-thingies
-My repository for doing dfir windows thingies in real time.
+My repository for doing dfir windows things in real time.
 
 # Scripts
 ## scripts/etw_mon.py
@@ -10,6 +10,10 @@ See [userassist_monitor docs](https://github.com/forensicmatt/PyWindowsThingies/
 
 ## scripts/print_handles.py
 See [print_handles docs](https://github.com/forensicmatt/PyWindowsThingies/blob/master/scripts/print_handles.md)
+
+## scripts/print_publishers.py
+See [print_publishers docs](https://github.com/forensicmatt/PyWindowsThingies/blob/master/scripts/print_publishers.md)
+
 
 # Thanks
 Thanks to other people's work that were great win32 ctype references.

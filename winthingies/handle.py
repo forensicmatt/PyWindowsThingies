@@ -102,7 +102,7 @@ def iterate_handles(pid=None):
 
 
 def get_handle_name(handle):
-    """Get the handle type information.
+    """Get the handle type name.
     """
     raw_buffer = ctypes.c_buffer(0x1000)
     size = DWORD(

@@ -13,9 +13,102 @@ wevtapi.EvtClose.argtypes = [
 ]
 
 
-# Gets a handle that you use to read the specified provider's metadata.
-# https://docs.microsoft.com/en-us/windows/desktop/api/WinEvt/nf-winevt-evtopenpublishermetadata
-# https://docs.microsoft.com/en-us/windows/desktop/WES/getting-a-provider-s-metadata-
+# Gets a handle that you use to enumerate the list of registered providers on the computer
+# https://docs.microsoft.com/en-us/windows/desktop/api/winevt/nf-winevt-evtopenpublisherenum
+wevtapi.EvtOpenPublisherEnum.restype = EVT_HANDLE
+wevtapi.EvtOpenPublisherEnum.argtypes = [
+    EVT_HANDLE,
+    DWORD
+]
+def EvtOpenPublisherEnum(session=None):
+    """Helper function to call wevtapi.EvtOpenPublisherEnum.
+
+    :param session: (None|EVT_HANDLE)A remote session handle that the EvtOpenSession function returns.
+        Set to NULL to enumerate the registered providers on the local computer.
+    :return:
+    """
+    provider_list_handle = wevtapi.EvtOpenPublisherEnum(
+        session,
+        0
+    )
+
+    if provider_list_handle is None:
+        status = kernel32.GetLastError()
+        raise(
+            Exception("EvtOpenPublisherEnum Error. Code: {}".format(
+                status
+            ))
+        )
+
+    return provider_list_handle
+
+
+# Gets the identifier of a provider from the enumerator.
+# https://docs.microsoft.com/en-us/windows/desktop/api/winevt/nf-winevt-evtnextpublisherid
+wevtapi.EvtNextPublisherId.restype = BOOL
+wevtapi.EvtNextPublisherId.argtypes = [
+    EVT_HANDLE,
+    DWORD,
+    LPWSTR,
+    PDWORD
+]
+def EvtNextPublisherId(publisher_enum):
+    """
+
+    :param publisher_enum: (EVT_HANDLE) PublisherEnum from EvtOpenPublisherEnum.
+    :return:
+    """
+    buffer_size = 0
+    buffer_used = byref(DWORD())
+
+    result = wevtapi.EvtNextPublisherId(
+        publisher_enum,
+        buffer_size,
+        None,
+        buffer_used
+    )
+    if result == 0:
+        # Check our last error
+        status = kernel32.GetLastError()
+
+        if status == ERROR_INSUFFICIENT_BUFFER:
+            buffer_size = buffer_used._obj.value
+            c_buffer = ctypes.c_buffer(buffer_size * 2)
+            unicode_buffer = ctypes.cast(c_buffer, LPWSTR)
+
+            result = wevtapi.EvtNextPublisherId(
+                publisher_enum,
+                buffer_size,
+                unicode_buffer,
+                buffer_used
+            )
+
+            return unicode_buffer.value
+        if status == ERROR_NO_MORE_ITEMS:
+            return
+        else:
+            raise (
+                Exception(
+                    "Unhandled error on EvtNextPublisherId. Error: {}".format(
+                        status
+                    )
+                )
+            )
+
+
+"""EvtOpenPublisherMetadata
+Gets a handle that you use to read the specified provider's metadata.
+https://docs.microsoft.com/en-us/windows/desktop/api/WinEvt/nf-winevt-evtopenpublishermetadata
+https://docs.microsoft.com/en-us/windows/desktop/WES/getting-a-provider-s-metadata-
+
+EVT_HANDLE EvtOpenPublisherMetadata(
+  EVT_HANDLE Session,
+  LPCWSTR    PublisherId,
+  LPCWSTR    LogFilePath,
+  LCID       Locale,
+  DWORD      Flags
+);
+"""
 wevtapi.EvtOpenPublisherMetadata.restype = EVT_HANDLE
 wevtapi.EvtOpenPublisherMetadata.argtypes = [
     EVT_HANDLE,
@@ -24,7 +117,7 @@ wevtapi.EvtOpenPublisherMetadata.argtypes = [
     LCID,
     DWORD
 ]
-def EvtOpenPublisherMetadata(publisher_id):
+def EvtOpenPublisherMetadata(publisher_id, logfile_path=None):
     """A helper function to make calling EvtOpenPublisherMetadata easier.
 
     :param publisher_id: (str) The name of the provider
@@ -33,10 +126,14 @@ def EvtOpenPublisherMetadata(publisher_id):
     evt_handle = wevtapi.EvtOpenPublisherMetadata(
         None,
         publisher_id,
-        None,
+        logfile_path,
         0,
         0
     )
+    if evt_handle is None:
+        err_no = kernel32.GetLastError()
+        raise WindowsError(err_no, ctypes.FormatError(err_no))
+
     return evt_handle
 
 
@@ -160,10 +257,14 @@ def EvtGetPublisherMetadataProperty(metadata_handle, property_id):
 
             return variant
         else:
+            error_msg = ctypes.FormatError(
+                status
+            )
             raise(
                 Exception(
-                    "Unhandled error on EvtGetObjectArrayProperty. Error: {}".format(
-                        status
+                    "Unhandled error on EvtGetPublisherMetadataProperty. Error: {}; Message: {}".format(
+                        status,
+                        error_msg
                     )
                 )
             )
