@@ -3,6 +3,7 @@ import ujson
 import ctypes
 import logging
 import threading
+from winthingies.mappings import PublisherMapping
 from winthingies.win32.const import *
 from winthingies.win32.winstructs import *
 from winthingies.win32 import advapi32
@@ -45,6 +46,8 @@ class TraceConsumer(threading.Thread):
             self._event_callback
         )
 
+        self._publisher_mapping = None
+
         # Flag for stopping
         self._stop_flag = threading.Event()
         threading.Thread.__init__(self)
@@ -54,6 +57,7 @@ class TraceConsumer(threading.Thread):
 
         :return: (None)
         """
+        self._publisher_mapping = PublisherMapping()
         self._trace_handle = advapi32.OpenTraceW(
             ctypes.byref(self._event_trace_logfile)
         )
@@ -103,6 +107,11 @@ class TraceConsumer(threading.Thread):
         # )
 
         this = event_record.contents.EventHeader.as_dict()
+        this['EventDescriptor']['Keyword'] = self._publisher_mapping.get_keyword_name(
+            event_information.contents.ProviderGuid,
+            event_information.contents.EventDescriptor.Keyword
+        )
+
         for event_property_info in event_information.contents.iter_properties():
             name = event_property_info.get_property_name(
                 event_information

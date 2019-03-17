@@ -59,3 +59,6 @@ class GUID(Structure):
             struct.unpack("<B", raw_buffer[14:15])[0],
             struct.unpack("<B", raw_buffer[15:16])[0]
         )
+
+    def __hash__(self):
+        return hash(str(self))

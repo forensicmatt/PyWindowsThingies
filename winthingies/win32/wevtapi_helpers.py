@@ -3,6 +3,7 @@ from winthingies.win32.wevtapi import *
 from winthingies.win32.kernel32 import kernel32
 
 
+# https://docs.microsoft.com/en-us/windows/desktop/api/winevt/ne-winevt-_evt_publisher_metadata_property_id
 class PublisherMetadata(object):
     def __init__(self, publisher_name):
         self.publisher_name = publisher_name
