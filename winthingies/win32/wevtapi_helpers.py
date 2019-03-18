@@ -1,3 +1,4 @@
+import logging
 from winthingies.win32.const import *
 from winthingies.win32.wevtapi import *
 from winthingies.win32.kernel32 import kernel32
@@ -19,6 +20,12 @@ class PublisherMetadata(object):
         )
 
     @property
+    def opcode_mapping(self):
+        return get_opcode_mapping(
+            self._handle
+        )
+
+    @property
     def guid(self):
         variant = EvtGetPublisherMetadataProperty(
             self._handle,
@@ -32,7 +39,8 @@ class PublisherMetadata(object):
     def as_json(self):
         info = {
             "guid": self.guid,
-            "keywords": self.keyword_mapping
+            "keywords": self.keyword_mapping,
+            "opcode_mapping": self.opcode_mapping
         }
         return info
 
@@ -43,13 +51,79 @@ class PublisherMetadata(object):
             )
 
 
+def get_opcode_mapping(metadata_handle):
+    """Get a dictionary of operation info.
+
+    :param metadata_handle: (EVT_HANDLE) The handle returned by EvtOpenPublisherMetadata
+    :return:
+    """
+    opcode_map = {}
+    meta_prop_variant = EvtGetPublisherMetadataProperty(
+        metadata_handle,
+        EvtPublisherMetadataOpcodes
+    )
+
+    if meta_prop_variant is None:
+        return
+
+    array_handle = meta_prop_variant._VARIANT_VALUE.EvtHandleVal
+    array_size = byref(DWORD())
+
+    wevtapi.EvtGetObjectArraySize(
+        array_handle,
+        array_size
+    )
+
+    if array_size._obj.value > 0:
+        for index in range(array_size._obj.value):
+            info = {}
+
+            message_id_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataOpcodeMessageID
+            )
+            info['message'] = ""
+            message_id = message_id_property._VARIANT_VALUE.Int32Val
+            if message_id != -1:
+                # We have a description
+                message_str = get_message(
+                    metadata_handle,
+                    message_id
+                )
+                if message_str:
+                    info['message'] = message_str
+
+            name_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataOpcodeName
+            )
+            opcode_name = name_property._VARIANT_VALUE.StringVal
+            info['name'] = opcode_name
+
+            mask_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataOpcodeValue
+            )
+            opcode_value = mask_property._VARIANT_VALUE.UInt64Val
+            info['value'] = opcode_value
+
+            opcode_map[opcode_value] = info
+
+    wevtapi.EvtClose(
+        array_handle
+    )
+
+    return opcode_map
+
+
 def get_keyword_mapping(metadata_handle):
     """Get a dictionary of keyword info.
 
     :param metadata_handle: (EVT_HANDLE) The handle returned by EvtOpenPublisherMetadata
-    :return: {
-        UInt64Val: "StringVal"
-    }
+    :return: (dict)
     """
     keyword_map = {}
     meta_prop_variant = EvtGetPublisherMetadataProperty(
@@ -84,7 +158,7 @@ def get_keyword_mapping(metadata_handle):
                 index,
                 EvtPublisherMetadataKeywordMessageID
             )
-            info['desc'] = ""
+            info['message'] = ""
             message_id = desc_property._VARIANT_VALUE.Int32Val
             if message_id != -1:
                 # We have a description
@@ -93,16 +167,16 @@ def get_keyword_mapping(metadata_handle):
                     message_id
                 )
                 if message_str:
-                    info['desc'] = message_str
+                    info['message'] = message_str
 
             mask_property = get_property(
                 array_handle,
                 index,
                 EvtPublisherMetadataKeywordValue
             )
-            info['mask'] = mask_property._VARIANT_VALUE.UInt64Val
+            info['value'] = mask_property._VARIANT_VALUE.UInt64Val
 
-            keyword_map[info['mask']] = info
+            keyword_map[info['value']] = info
 
     wevtapi.EvtClose(
         array_handle
@@ -157,12 +231,11 @@ def get_message(metadata_handle, message_id):
 
             return unicode_buffer.value
         else:
-            raise (
-                Exception(
-                    "Unhandled error on EvtFormatMessage. Error: {}".format(
-                        status
-                    )
-                )
+            err_no = kernel32.GetLastError()
+            logging.error(
+                str(WindowsError(
+                    err_no, ctypes.FormatError(err_no)
+                ))
             )
 
 
@@ -172,7 +245,7 @@ def get_property(evt_handle, index, property_id):
     :param evt_handle: (EVT_HANDLE)
     :param index: (DWORD)
     :param property_id: (EVT_PUBLISHER_METADATA_PROPERTY_ID)
-    :return:
+    :return: (EVT_VARIANT|None)
     """
     # The first thing we need to do is find out how large our variant buffer will be
     # to do this, we set our variant to Null, the result will be 0, and set an error.
@@ -215,10 +288,5 @@ def get_property(evt_handle, index, property_id):
 
             return variant
         else:
-            raise(
-                Exception(
-                    "Unhandled error on EvtGetObjectArrayProperty. Error: {}".format(
-                        status
-                    )
-                )
-            )
+            err_no = kernel32.GetLastError()
+            raise WindowsError(err_no, ctypes.FormatError(err_no))
