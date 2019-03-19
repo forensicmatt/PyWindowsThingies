@@ -75,7 +75,19 @@ def print_publisher_info(publisher_name):
                 desc
             ))
 
+    print("--- Tasks ---")
+    task_mapping = metadata_handle.task_mapping
+    if task_mapping:
+        for task_value, task_info in task_mapping.items():
+            desc = ""
+            if task_info["message"]:
+                desc = " [{}]".format(task_info["message"])
 
+            print("0x{:016X}: {}{}".format(
+                task_value,
+                task_info["name"],
+                desc
+            ))
 
 
 def main():

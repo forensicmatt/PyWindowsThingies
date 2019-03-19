@@ -43,7 +43,9 @@ class PublisherMapping(object):
         self.mapping[metadata_handle.guid] = {
             "guid_str": str(metadata_handle.guid),
             "name": publisher_name,
-            "keywords": metadata_handle.keyword_mapping
+            "keywords": metadata_handle.keyword_mapping,
+            "operations": metadata_handle.opcode_mapping,
+            "tasks": metadata_handle.task_mapping
         }
 
     def get_keyword_name(self, guid, keyword):
@@ -59,7 +61,37 @@ class PublisherMapping(object):
             for keyword_int, keyword_info in pub_info['keywords'].items():
                 if keyword & keyword_int:
                     keyword_name_list.append(
-                        keyword_info["name"]
+                        keyword_info['name']
                     )
 
         return "|".join(keyword_name_list)
+
+    def get_opcode_name(self, guid, opcode_value):
+        """Get the name representing the opcode.
+
+        :param guid:
+        :param keyword:
+        :return:
+        """
+        pub_info = self.mapping.get(str(guid), None)
+        if pub_info is not None:
+            opcode_info = pub_info['operations'].get(opcode_value, None)
+            if opcode_info is not None:
+                return opcode_info['name']
+
+        return str(opcode_value)
+
+    def get_task_name(self, guid, task_value):
+        """Get the name representing the task.
+
+        :param guid:
+        :param keyword:
+        :return:
+        """
+        pub_info = self.mapping.get(str(guid), None)
+        if pub_info is not None:
+            task_info = pub_info['tasks'].get(task_value, None)
+            if task_info is not None:
+                return task_info['name']
+
+        return str(task_value)

@@ -3,3 +3,5 @@ providers:
   - name: Microsoft-Windows-Kernel-Process
     guid: "{22FB2CD6-0E7B-422B-A0C7-2FAD1FD0E716}"
     match_any_keyword: 0x0000000000000010
+output:
+  format: "{record['TimeStamp']}: Task: {record['EventDescriptor']['Task']} {record['ImageName']}"

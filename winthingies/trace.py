@@ -111,6 +111,14 @@ class TraceConsumer(threading.Thread):
             event_information.contents.ProviderGuid,
             event_information.contents.EventDescriptor.Keyword
         )
+        this['EventDescriptor']['Opcode'] = self._publisher_mapping.get_opcode_name(
+            event_information.contents.ProviderGuid,
+            event_information.contents.EventDescriptor.Opcode
+        )
+        this['EventDescriptor']['Task'] = self._publisher_mapping.get_task_name(
+            event_information.contents.ProviderGuid,
+            event_information.contents.EventDescriptor.Task
+        )
 
         for event_property_info in event_information.contents.iter_properties():
             name = event_property_info.get_property_name(
@@ -123,7 +131,6 @@ class TraceConsumer(threading.Thread):
                     event_information
                 )
             except Exception as error:
-
                 data = None
 
             this[name] = data

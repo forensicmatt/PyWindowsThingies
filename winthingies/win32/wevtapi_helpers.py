@@ -26,6 +26,12 @@ class PublisherMetadata(object):
         )
 
     @property
+    def task_mapping(self):
+        return get_task_mapping(
+            self._handle
+        )
+
+    @property
     def guid(self):
         variant = EvtGetPublisherMetadataProperty(
             self._handle,
@@ -40,7 +46,8 @@ class PublisherMetadata(object):
         info = {
             "guid": self.guid,
             "keywords": self.keyword_mapping,
-            "opcode_mapping": self.opcode_mapping
+            "operations": self.opcode_mapping,
+            "tasks": self.task_mapping
         }
         return info
 
@@ -49,6 +56,82 @@ class PublisherMetadata(object):
             wevtapi.EvtClose(
                 self._handle
             )
+
+
+def get_task_mapping(metadata_handle):
+    """Get a dictionary of task info.
+
+    :param metadata_handle: (EVT_HANDLE) The handle returned by EvtOpenPublisherMetadata
+    :return:
+    """
+    task_map = {}
+    meta_prop_variant = EvtGetPublisherMetadataProperty(
+        metadata_handle,
+        EvtPublisherMetadataTasks
+    )
+
+    if meta_prop_variant is None:
+        return
+
+    array_handle = meta_prop_variant._VARIANT_VALUE.EvtHandleVal
+    array_size = byref(DWORD())
+
+    wevtapi.EvtGetObjectArraySize(
+        array_handle,
+        array_size
+    )
+
+    if array_size._obj.value > 0:
+        for index in range(array_size._obj.value):
+            info = {}
+
+            message_id_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataTaskMessageID
+            )
+            info['message'] = ""
+            message_id = message_id_property._VARIANT_VALUE.Int32Val
+            if message_id != -1:
+                # We have a description
+                message_str = get_message(
+                    metadata_handle,
+                    message_id
+                )
+                if message_str:
+                    info['message'] = message_str
+
+            name_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataTaskName
+            )
+            opcode_name = name_property._VARIANT_VALUE.StringVal
+            info['name'] = opcode_name
+
+            guid_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataTaskEventGuid
+            )
+            task_guid = guid_property._VARIANT_VALUE.GuidVal
+            info['guid'] = str(task_guid)
+
+            value_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataTaskValue
+            )
+            task_value = value_property._VARIANT_VALUE.UInt64Val
+            info['value'] = task_value
+
+            task_map[task_value] = info
+
+    wevtapi.EvtClose(
+        array_handle
+    )
+
+    return task_map
 
 
 def get_opcode_mapping(metadata_handle):

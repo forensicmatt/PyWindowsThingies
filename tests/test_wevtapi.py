@@ -2,6 +2,7 @@ import unittest
 from winthingies.win32.wevtapi import *
 from winthingies.win32.wevtapi_helpers import PublisherMetadata
 from winthingies.win32.wevtapi_helpers import get_keyword_mapping
+from winthingies.win32.wevtapi_helpers import get_task_mapping
 
 
 class TestProvider(unittest.TestCase):
@@ -46,6 +47,24 @@ class TestProvider(unittest.TestCase):
         self.assertEqual("Stop", mapping[131072]["message"])
         self.assertEqual("win:Stop", mapping[131072]["name"])
         self.assertEqual(131072, mapping[131072]["value"])
+
+    def test_get_tasks(self):
+        """
+
+        :return:
+        """
+        metadata_handle = EvtOpenPublisherMetadata(
+            "Microsoft-Windows-Kernel-Process"
+        )
+
+        mapping = get_task_mapping(
+            metadata_handle
+        )
+        self.assertEqual(18, len(mapping))
+
+        wevtapi.EvtClose(
+            metadata_handle
+        )
 
     def test_get_metadata(self):
         """PublisherMetadata is needed to map keyword descriptions to their flag.
