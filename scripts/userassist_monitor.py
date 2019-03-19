@@ -72,20 +72,6 @@ def get_arguments():
     return arguments
 
 
-def enumerate_keywords(keyword):
-    """Translate bitmap keyword to string.
-
-    :param keyword: (int|long) EventDescriptor.Keyword
-    :return: (str) The string that represents the event keywords
-    """
-    ops = []
-    for key, value in KEYWORD_OPS.items():
-        if keyword & key:
-            ops.append(value)
-
-    return "|".join(ops)
-
-
 class UserAssist(object):
     """
     Structure resources:
@@ -183,9 +169,6 @@ class UserAssistMonitor(object):
                     value_data, value_type = win32api.RegQueryValueEx(
                         key_handle,
                         event_dict["ValueName"]
-                    )
-                    event_dict["EventDescriptor"]["KeywordStr"] = enumerate_keywords(
-                        event_dict["EventDescriptor"]["Keyword"]
                     )
 
                     # Parse UserAssist data
