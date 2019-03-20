@@ -1,8 +1,6 @@
 import unittest
 from winthingies.win32.wevtapi import *
 from winthingies.win32.wevtapi_helpers import PublisherMetadata
-from winthingies.win32.wevtapi_helpers import get_keyword_mapping
-from winthingies.win32.wevtapi_helpers import get_task_mapping
 
 
 class TestProvider(unittest.TestCase):
@@ -34,6 +32,19 @@ class TestProvider(unittest.TestCase):
             "Microsoft-Windows-Kernel-Process"
         )
 
+        self.assertEqual(11, len(publisher_metadata.keyword_mapping))
+        self.assertEqual("WINEVENT_KEYWORD_PROCESS", publisher_metadata.keyword_mapping[16]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_THREAD", publisher_metadata.keyword_mapping[32]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_IMAGE", publisher_metadata.keyword_mapping[64]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_CPU_PRIORITY", publisher_metadata.keyword_mapping[128]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_OTHER_PRIORITY", publisher_metadata.keyword_mapping[256]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_PROCESS_FREEZE", publisher_metadata.keyword_mapping[512]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_JOB", publisher_metadata.keyword_mapping[1024]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_ENABLE_PROCESS_TRACING_CALLBACKS", publisher_metadata.keyword_mapping[2048]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_JOB_IO", publisher_metadata.keyword_mapping[4096]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_WORK_ON_BEHALF", publisher_metadata.keyword_mapping[8192]["name"])
+        self.assertEqual("WINEVENT_KEYWORD_JOB_SILO", publisher_metadata.keyword_mapping[16384]["name"])
+
         self.assertEqual("Info", publisher_metadata.opcode_mapping[0]["message"])
         self.assertEqual("win:Info", publisher_metadata.opcode_mapping[0]["name"])
         self.assertEqual(0, publisher_metadata.opcode_mapping[0]["value"])
@@ -44,58 +55,11 @@ class TestProvider(unittest.TestCase):
         self.assertEqual("win:Stop", publisher_metadata.opcode_mapping[131072]["name"])
         self.assertEqual(131072, publisher_metadata.opcode_mapping[131072]["value"])
 
+        self.assertEqual(18, len(publisher_metadata.task_mapping))
+
         self.assertEqual('win:Informational', publisher_metadata.level_mapping[4]["name"])
 
         self.assertEqual('Microsoft-Windows-Kernel-Process/Analytic', publisher_metadata.channel_mapping[0]["path"])
-
-    def test_get_tasks(self):
-        """
-
-        :return:
-        """
-        metadata_handle = EvtOpenPublisherMetadata(
-            "Microsoft-Windows-Kernel-Process"
-        )
-
-        mapping = get_task_mapping(
-            metadata_handle
-        )
-        self.assertEqual(18, len(mapping))
-
-        wevtapi.EvtClose(
-            metadata_handle
-        )
-
-    def test_get_metadata(self):
-        """PublisherMetadata is needed to map keyword descriptions to their flag.
-
-        :return:
-        """
-        # This function opens up a metadata handle to a given local publisher
-        metadata_handle = EvtOpenPublisherMetadata(
-            "Microsoft-Windows-Kernel-Process"
-        )
-
-        mapping = get_keyword_mapping(
-            metadata_handle
-        )
-
-        self.assertEqual(11, len(mapping))
-        self.assertEqual("WINEVENT_KEYWORD_PROCESS", mapping[16]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_THREAD", mapping[32]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_IMAGE", mapping[64]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_CPU_PRIORITY", mapping[128]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_OTHER_PRIORITY", mapping[256]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_PROCESS_FREEZE", mapping[512]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_JOB", mapping[1024]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_ENABLE_PROCESS_TRACING_CALLBACKS", mapping[2048]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_JOB_IO", mapping[4096]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_WORK_ON_BEHALF", mapping[8192]["name"])
-        self.assertEqual("WINEVENT_KEYWORD_JOB_SILO", mapping[16384]["name"])
-
-        wevtapi.EvtClose(
-            metadata_handle
-        )
 
 
 if __name__ == '__main__':

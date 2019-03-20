@@ -66,9 +66,16 @@ class PublisherMetadata(object):
 
     def __del__(self):
         if self._handle is not None:
-            wevtapi.EvtClose(
+            result = wevtapi.EvtClose(
                 self._handle
             )
+            if not result:
+                err_no = kernel32.GetLastError()
+                logging.error(
+                    str(WindowsError(
+                        err_no, ctypes.FormatError(err_no)
+                    ))
+                )
 
 
 def get_channel_mapping(metadata_handle):
