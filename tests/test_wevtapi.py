@@ -46,6 +46,8 @@ class TestProvider(unittest.TestCase):
 
         self.assertEqual('win:Informational', publisher_metadata.level_mapping[4]["name"])
 
+        self.assertEqual('Microsoft-Windows-Kernel-Process/Analytic', publisher_metadata.channel_mapping[0]["path"])
+
     def test_get_tasks(self):
         """
 

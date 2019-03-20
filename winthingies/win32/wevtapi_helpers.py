@@ -14,6 +14,12 @@ class PublisherMetadata(object):
         )
 
     @property
+    def channel_mapping(self):
+        return get_channel_mapping(
+            self._handle
+        )
+
+    @property
     def level_mapping(self):
         return get_level_mapping(
             self._handle
@@ -63,6 +69,91 @@ class PublisherMetadata(object):
             wevtapi.EvtClose(
                 self._handle
             )
+
+
+def get_channel_mapping(metadata_handle):
+    """Get a dictionary of channel info.
+
+    :param metadata_handle: (EVT_HANDLE) The handle returned by EvtOpenPublisherMetadata
+    :return:
+    """
+    channel_map = {}
+    meta_prop_variant = EvtGetPublisherMetadataProperty(
+        metadata_handle,
+        EvtPublisherMetadataChannelReferences
+    )
+
+    if meta_prop_variant is None:
+        return
+
+    array_handle = meta_prop_variant._VARIANT_VALUE.EvtHandleVal
+    array_size = byref(DWORD())
+
+    wevtapi.EvtGetObjectArraySize(
+        array_handle,
+        array_size
+    )
+    if array_size._obj.value > 0:
+        for index in range(array_size._obj.value):
+            info = {}
+
+            message_id_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataChannelReferenceMessageID
+            )
+            info['message'] = ""
+            message_id = message_id_property._VARIANT_VALUE.Int32Val
+            if message_id != -1:
+                # We have a description
+                message_str = get_message(
+                    metadata_handle,
+                    message_id
+                )
+                if message_str:
+                    info['message'] = message_str
+
+            path_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataChannelReferencePath
+            )
+            name = path_property._VARIANT_VALUE.StringVal
+            info['path'] = name
+
+            index_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataChannelReferenceIndex
+            )
+            index = index_property._VARIANT_VALUE.UInt32Val
+            info['index'] = index
+
+            id_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataChannelReferenceID
+            )
+            info['id'] = None
+            if id_property is not None:
+                info['id'] = id_property._VARIANT_VALUE.UInt32Val
+
+            flags_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataChannelReferenceFlags
+            )
+            info['flags'] = None
+            if flags_property is not None:
+                info['flags'] = flags_property._VARIANT_VALUE.UInt32Val
+
+            channel_map[index] = info
+
+    wevtapi.EvtClose(
+        array_handle
+    )
+
+    return channel_map
 
 
 def get_level_mapping(metadata_handle):
@@ -446,4 +537,8 @@ def get_property(evt_handle, index, property_id):
             return variant
         else:
             err_no = kernel32.GetLastError()
-            raise WindowsError(err_no, ctypes.FormatError(err_no))
+            logging.error(
+                str(WindowsError(
+                    err_no, ctypes.FormatError(err_no)
+                ))
+            )

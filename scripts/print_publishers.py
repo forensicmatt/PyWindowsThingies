@@ -6,6 +6,16 @@ from winthingies.win32.wevtapi import *
 from winthingies.win32.wevtapi_helpers import PublisherMetadata
 
 VERSION = "0.0.1"
+VALID_DEBUG_LEVELS = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
+
+
+def set_debug_level(debug_level):
+    if debug_level in VALID_DEBUG_LEVELS:
+        logging.basicConfig(
+            level=getattr(logging, debug_level)
+        )
+    else:
+        raise (Exception("{} is not a valid debug level.".format(debug_level)))
 
 
 def get_arguments():
@@ -28,6 +38,15 @@ def get_arguments():
         help="A specific publisher."
     )
 
+    arguments.add_argument(
+        "--debug",
+        dest="debug",
+        action="store",
+        default="CRITICAL",
+        choices=VALID_DEBUG_LEVELS,
+        help="Debug level [default=CRITICAL]"
+    )
+
     return arguments
 
 
@@ -46,6 +65,20 @@ def print_publisher_info(publisher_name):
     print("Publisher: {}".format(publisher_name))
     print("GUID: {}".format(metadata_handle.guid))
     print("----------------------------------------------")
+
+    print("--- Channels ---")
+    channel_mapping = metadata_handle.channel_mapping
+    if channel_mapping:
+        for channel_value, channel_info in channel_mapping.items():
+            desc = ""
+            if channel_info["message"]:
+                desc = " [{}]".format(channel_info["message"])
+
+            print("0x{:016X}: {}{}".format(
+                channel_value,
+                channel_info["path"],
+                desc
+            ))
 
     print("--- Keywords ---")
     keyword_mapping = metadata_handle.keyword_mapping
@@ -107,6 +140,10 @@ def print_publisher_info(publisher_name):
 def main():
     arguments = get_arguments()
     options = arguments.parse_args()
+
+    set_debug_level(
+        options.debug
+    )
 
     if options.publisher:
         print_publisher_info(
