@@ -14,6 +14,56 @@ class PublisherMetadata(object):
         )
 
     @property
+    def resource_file_path(self):
+        variant = EvtGetPublisherMetadataProperty(
+            self._handle,
+            EvtPublisherMetadataResourceFilePath
+        )
+        return variant._VARIANT_VALUE.StringVal
+
+    @property
+    def parameter_file_path(self):
+        variant = EvtGetPublisherMetadataProperty(
+            self._handle,
+            EvtPublisherMetadataParameterFilePath
+        )
+        return variant._VARIANT_VALUE.StringVal
+
+    @property
+    def message_file_path(self):
+        variant = EvtGetPublisherMetadataProperty(
+            self._handle,
+            EvtPublisherMetadataMessageFilePath
+        )
+        return variant._VARIANT_VALUE.StringVal
+
+    @property
+    def help_link(self):
+        variant = EvtGetPublisherMetadataProperty(
+            self._handle,
+            EvtPublisherMetadataHelpLink
+        )
+        return variant._VARIANT_VALUE.StringVal
+
+    @property
+    def publisher_message(self):
+        variant = EvtGetPublisherMetadataProperty(
+            self._handle,
+            EvtPublisherMetadataPublisherMessageID
+        )
+        message_id = variant._VARIANT_VALUE.Int32Val
+        if message_id != -1:
+            # We have a description
+            message_str = get_message(
+                self._handle,
+                message_id
+            )
+            if message_str:
+                return message_str
+
+        return ""
+
+    @property
     def channel_mapping(self):
         return get_channel_mapping(
             self._handle
@@ -56,7 +106,12 @@ class PublisherMetadata(object):
 
     def as_json(self):
         info = {
+            "message": self.publisher_message,
             "guid": self.guid,
+            "resource_file_path": self.resource_file_path,
+            "parameter_file_path": self.parameter_file_path,
+            "message_file_path": self.message_file_path,
+            "help_link": self.help_link,
             "keywords": self.keyword_mapping,
             "operations": self.opcode_mapping,
             "tasks": self.task_mapping,

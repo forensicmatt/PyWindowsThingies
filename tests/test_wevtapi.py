@@ -32,6 +32,14 @@ class TestProvider(unittest.TestCase):
             "Microsoft-Windows-Kernel-Process"
         )
 
+        self.assertEqual('Microsoft-Windows-Kernel-Process', publisher_metadata.publisher_message)
+        self.assertEqual('C:\\WINDOWS\\system32\\Microsoft-Windows-System-Events.dll', publisher_metadata.resource_file_path)
+        self.assertEqual(None, publisher_metadata.parameter_file_path)
+        self.assertEqual('C:\\WINDOWS\\system32\\Microsoft-Windows-System-Events.dll', publisher_metadata.message_file_path)
+        self.assertEqual('https://go.microsoft.com/fwlink/events.asp?CoName=Microsoft%20Corporation&ProdName='
+                         'Microsoft%c2%ae%20Windows%c2%ae%20Operating%20System&ProdVer=10.0.17134.1&FileName='
+                         'Microsoft-Windows-System-Events.dll&FileVer=10.0.17134.1', publisher_metadata.help_link)
+
         self.assertEqual(11, len(publisher_metadata.keyword_mapping))
         self.assertEqual("WINEVENT_KEYWORD_PROCESS", publisher_metadata.keyword_mapping[16]["name"])
         self.assertEqual("WINEVENT_KEYWORD_THREAD", publisher_metadata.keyword_mapping[32]["name"])
