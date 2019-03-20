@@ -34,19 +34,17 @@ class TestProvider(unittest.TestCase):
             "Microsoft-Windows-Kernel-Process"
         )
 
-        mapping = publisher_metadata.opcode_mapping
+        self.assertEqual("Info", publisher_metadata.opcode_mapping[0]["message"])
+        self.assertEqual("win:Info", publisher_metadata.opcode_mapping[0]["name"])
+        self.assertEqual(0, publisher_metadata.opcode_mapping[0]["value"])
+        self.assertEqual("Start", publisher_metadata.opcode_mapping[65536]["message"])
+        self.assertEqual("win:Start", publisher_metadata.opcode_mapping[65536]["name"])
+        self.assertEqual(65536, publisher_metadata.opcode_mapping[65536]["value"])
+        self.assertEqual("Stop", publisher_metadata.opcode_mapping[131072]["message"])
+        self.assertEqual("win:Stop", publisher_metadata.opcode_mapping[131072]["name"])
+        self.assertEqual(131072, publisher_metadata.opcode_mapping[131072]["value"])
 
-        self.assertEqual("Info", mapping[0]["message"])
-        self.assertEqual("win:Info", mapping[0]["name"])
-        self.assertEqual(0, mapping[0]["value"])
-
-        self.assertEqual("Start", mapping[65536]["message"])
-        self.assertEqual("win:Start", mapping[65536]["name"])
-        self.assertEqual(65536, mapping[65536]["value"])
-
-        self.assertEqual("Stop", mapping[131072]["message"])
-        self.assertEqual("win:Stop", mapping[131072]["name"])
-        self.assertEqual(131072, mapping[131072]["value"])
+        self.assertEqual('win:Informational', publisher_metadata.level_mapping[4]["name"])
 
     def test_get_tasks(self):
         """

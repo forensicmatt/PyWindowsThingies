@@ -75,6 +75,20 @@ def print_publisher_info(publisher_name):
                 desc
             ))
 
+    print("--- Levels ---")
+    level_mapping = metadata_handle.level_mapping
+    if level_mapping:
+        for level_value, level_info in level_mapping.items():
+            desc = ""
+            if level_info["message"]:
+                desc = " [{}]".format(level_info["message"])
+
+            print("0x{:016X}: {}{}".format(
+                level_value,
+                level_info["name"],
+                desc
+            ))
+
     print("--- Tasks ---")
     task_mapping = metadata_handle.task_mapping
     if task_mapping:

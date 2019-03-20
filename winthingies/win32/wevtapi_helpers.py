@@ -14,6 +14,12 @@ class PublisherMetadata(object):
         )
 
     @property
+    def level_mapping(self):
+        return get_level_mapping(
+            self._handle
+        )
+
+    @property
     def keyword_mapping(self):
         return get_keyword_mapping(
             self._handle
@@ -47,7 +53,8 @@ class PublisherMetadata(object):
             "guid": self.guid,
             "keywords": self.keyword_mapping,
             "operations": self.opcode_mapping,
-            "tasks": self.task_mapping
+            "tasks": self.task_mapping,
+            "levels": self.level_mapping
         }
         return info
 
@@ -56,6 +63,73 @@ class PublisherMetadata(object):
             wevtapi.EvtClose(
                 self._handle
             )
+
+
+def get_level_mapping(metadata_handle):
+    """Get a dictionary of level info.
+
+    :param metadata_handle: (EVT_HANDLE) The handle returned by EvtOpenPublisherMetadata
+    :return:
+    """
+    level_map = {}
+    meta_prop_variant = EvtGetPublisherMetadataProperty(
+        metadata_handle,
+        EvtPublisherMetadataLevels
+    )
+
+    if meta_prop_variant is None:
+        return
+
+    array_handle = meta_prop_variant._VARIANT_VALUE.EvtHandleVal
+    array_size = byref(DWORD())
+
+    wevtapi.EvtGetObjectArraySize(
+        array_handle,
+        array_size
+    )
+    if array_size._obj.value > 0:
+        for index in range(array_size._obj.value):
+            info = {}
+
+            message_id_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataLevelMessageID
+            )
+            info['message'] = ""
+            message_id = message_id_property._VARIANT_VALUE.Int32Val
+            if message_id != -1:
+                # We have a description
+                message_str = get_message(
+                    metadata_handle,
+                    message_id
+                )
+                if message_str:
+                    info['message'] = message_str
+
+            name_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataLevelName
+            )
+            name = name_property._VARIANT_VALUE.StringVal
+            info['name'] = name
+
+            value_property = get_property(
+                array_handle,
+                index,
+                EvtPublisherMetadataLevelValue
+            )
+            value = value_property._VARIANT_VALUE.UInt64Val
+            info['value'] = value
+
+            level_map[value] = info
+
+    wevtapi.EvtClose(
+        array_handle
+    )
+
+    return level_map
 
 
 def get_task_mapping(metadata_handle):
