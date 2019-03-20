@@ -66,6 +66,18 @@ def print_publisher_info(publisher_name):
     print("GUID: {}".format(metadata_handle.guid))
     print("----------------------------------------------")
 
+    if metadata_handle.resource_file_path:
+        print("Resource Path: {}".format(metadata_handle.resource_file_path))
+
+    if metadata_handle.message_file_path:
+        print("Message Path: {}".format(metadata_handle.message_file_path))
+
+    if metadata_handle.parameter_file_path:
+        print("Parameter Path: {}".format(metadata_handle.parameter_file_path))
+
+    if metadata_handle.help_link:
+        print("Help Link: {}".format(metadata_handle.help_link))
+
     print("--- Channels ---")
     channel_mapping = metadata_handle.channel_mapping
     if channel_mapping:
