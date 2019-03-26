@@ -210,6 +210,20 @@ class PROCESSENTRY32(Structure):
         ("szExeFile", CHAR * MAX_PATH),
     ]
 
+    def as_dict(self):
+        return {
+            "dwSize": self.dwSize,
+            "cntUsage": self.cntUsage,
+            "th32ProcessID": self.th32ProcessID,
+            "th32DefaultHeapID": self.th32DefaultHeapID,
+            "th32ModuleID": self.th32ModuleID,
+            "cntThreads": self.cntThreads,
+            "th32ParentProcessID": self.th32ParentProcessID,
+            "pcPriClassBase": self.pcPriClassBase,
+            "dwFlags": self.dwFlags,
+            "szExeFile": self.szExeFile.decode("utf-8")
+        }
+
 
 #########################################################################
 # Event Structs
@@ -227,7 +241,12 @@ class EVENT_DESCRIPTOR(Structure):
 
     def as_dict(self):
         return {
+            "Id": self.Id,
+            "Version": self.Version,
+            "Channel": self.Channel,
+            "Level": self.Level,
             "Opcode": self.Opcode,
+            "Task": self.Task,
             "Keyword": self.Keyword,
         }
 
@@ -250,10 +269,18 @@ class EVENT_HEADER(Structure):
 
     def as_dict(self):
         return {
-            "ProcessId": self.ProcessId,
+            "Size": self.Size,
+            "HeaderType": self.HeaderType,
+            "Flags": self.Flags,
+            "EventProperty": self.EventProperty,
             "ThreadId": self.ThreadId,
+            "ProcessId": self.ProcessId,
             "TimeStamp": self.TimeStamp,
-            "EventDescriptor": self.EventDescriptor.as_dict()
+            "ProviderId": str(self.ProviderId),
+            "EventDescriptor": self.EventDescriptor.as_dict(),
+            "KernelTime": self.KernelTime,
+            "UserTime": self.UserTime,
+            "ActivityId": str(self.ActivityId)
         }
 
 

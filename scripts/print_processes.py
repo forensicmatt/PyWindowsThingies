@@ -32,13 +32,12 @@ def main():
     arguments = get_arguments()
     options = arguments.parse_args()
 
-    for process in iterate_processes():
-        if process.name:
-            if options.name:
-                if process.name.lower() == options.name.lower():
-                    print(ujson.dumps(process.as_dict()))
-            else:
-                print(ujson.dumps(process.as_dict()))
+    for process_entry32 in iterate_processes():
+        if options.name:
+            if process_entry32.szExeFile.decode("utf-8").lower() == options.name.lower():
+                print(ujson.dumps(process_entry32.as_dict()))
+        else:
+            print(ujson.dumps(process_entry32.as_dict()))
 
 
 if __name__ == "__main__":

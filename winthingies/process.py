@@ -2,7 +2,7 @@ import os
 import logging
 import ctypes
 from winthingies.win32.const import *
-from winthingies.win32.psapi import psapi
+from winthingies.win32.psapi_helpers import GetProcessImageFileName
 from winthingies.win32.kernel32 import kernel32
 from winthingies.win32.winstructs import *
 
@@ -25,28 +25,18 @@ def iterate_processes(name=None):
         process_entry
     )
 
-    process = Process.by_pid(
-        process_entry.th32ProcessID,
-        access=PROCESS_QUERY_LIMITED_INFORMATION
-    )
-
     if name is not None:
-        if name.lower() == process.name.lower():
-            yield process
+        if name.lower() == process_entry.szExeFile.decode("utf-8").lower():
+            yield process_entry
     else:
-        yield process
+        yield process_entry
 
     while kernel32.Process32Next(snapshot, process_entry):
-        process = Process.by_pid(
-            process_entry.th32ProcessID,
-            access=PROCESS_QUERY_LIMITED_INFORMATION
-        )
-
         if name is not None:
-            if name.lower() == process.name.lower():
-                yield process
+            if name.lower() == process_entry.szExeFile.decode("utf-8").lower():
+                yield process_entry
         else:
-            yield process
+            yield process_entry
 
 
 class Process(object):
@@ -62,19 +52,15 @@ class Process(object):
 
     @property
     def path(self):
-        buffer = ctypes.c_buffer(
-            0x1024
+        """Get the path of this processes image.
+
+        :return: (str)
+        """
+        image_name = GetProcessImageFileName(
+            self._handle
         )
 
-        name_size = psapi.GetProcessImageFileNameA(
-            self._handle,
-            buffer,
-            len(buffer)
-        )
-
-        full_path = buffer[:name_size].decode()
-
-        return full_path
+        return image_name
 
     @staticmethod
     def by_pid(pid, access=PROCESS_ALL_ACCESS):
@@ -84,12 +70,48 @@ class Process(object):
             pid
         )
 
+        if process_handle is None:
+            err_no = kernel32.GetLastError()
+            raise (
+                WindowsError(
+                    err_no, ctypes.FormatError(err_no)
+                )
+            )
+
         process = Process(
             pid,
             process_handle
         )
 
         return process
+
+    @staticmethod
+    def get_name_by_pid(pid, access=PROCESS_QUERY_LIMITED_INFORMATION):
+        """Get the name of an image by process id.
+
+        :param pid: (int) The process id
+        :param access: (int) The process access flag
+        :return:
+        """
+        process_handle = kernel32.OpenProcess(
+            access,
+            False,
+            pid
+        )
+
+        if process_handle is None:
+            err_no = kernel32.GetLastError()
+            raise(
+                WindowsError(
+                    err_no, ctypes.FormatError(err_no)
+                )
+            )
+
+        image_name = GetProcessImageFileName(
+            process_handle
+        )
+
+        return image_name
 
     def as_dict(self):
         return {
