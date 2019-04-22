@@ -1,7 +1,12 @@
+import logging
 import ctypes
 from ctypes import *
 from ctypes.wintypes import *
+from winthingies.win32.const import *
 from winthingies.win32.guid import GUID
+from winthingies.win32.helpers import get_formatted_value, rel_ptr_to_str
+
+LOGGER = logging.getLogger(__name__)
 
 PWSTR = LPWSTR
 PVOID = c_void_p
@@ -29,27 +34,6 @@ UINT64 = ULONGLONG
 PSID = PVOID
 SIZE_T = c_size_t
 EVT_OBJECT_ARRAY_PROPERTY_HANDLE = HANDLE
-
-
-# Thanks to https://github.com/fireeye/pywintrace/blob/master/etw/common.py#L90
-def rel_ptr_to_str(base, offset):
-    """
-    Helper function to convert a relative offset to a string to the actual string.
-    """
-    return ctypes.cast(
-        rel_ptr_to_ptr(base, offset),
-        ctypes.c_wchar_p
-    ).value
-
-
-def rel_ptr_to_ptr(base, offset):
-    """
-    Helper function to convert a relative offset to a void pointer.
-    """
-    return ctypes.cast(
-        (ctypes.cast(base, ctypes.c_voidp).value + offset),
-        ctypes.c_voidp
-    )
 
 
 class FILETIME(Structure):
