@@ -27,16 +27,16 @@ def iterate_processes(name=None):
 
     if name is not None:
         if name.lower() == process_entry.szExeFile.decode("utf-8").lower():
-            yield process_entry
+            yield process_entry.clone()
     else:
-        yield process_entry
+        yield process_entry.clone()
 
     while kernel32.Process32Next(snapshot, process_entry):
         if name is not None:
             if name.lower() == process_entry.szExeFile.decode("utf-8").lower():
-                yield process_entry
+                yield process_entry.clone()
         else:
-            yield process_entry
+            yield process_entry.clone()
 
 
 class Process(object):

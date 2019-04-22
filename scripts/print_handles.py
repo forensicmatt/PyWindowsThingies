@@ -48,9 +48,12 @@ def main():
 
     for handle in iterate_handles(pid=options.pid):
         if options.type is not None:
-            if handle.type_name:
-                if handle.type_name.lower() == options.type.lower():
-                    print(ujson.dumps(handle.as_dict()))
+            try:
+                if handle.type_name:
+                    if handle.type_name.lower() == options.type.lower():
+                        print(ujson.dumps(handle.as_dict()))
+            except Exception as error:
+                logging.debug(error)
         else:
             print(ujson.dumps(handle.as_dict()))
 

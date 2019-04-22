@@ -210,6 +210,20 @@ class PROCESSENTRY32(Structure):
         ("szExeFile", CHAR * MAX_PATH),
     ]
 
+    def clone(self):
+        return PROCESSENTRY32(
+            self.dwSize,
+            self.cntUsage,
+            self.th32ProcessID,
+            self.th32DefaultHeapID,
+            self.th32ModuleID,
+            self.cntThreads,
+            self.th32ParentProcessID,
+            self.pcPriClassBase,
+            self.dwFlags,
+            self.szExeFile
+        )
+
     def as_dict(self):
         return {
             "dwSize": self.dwSize,
