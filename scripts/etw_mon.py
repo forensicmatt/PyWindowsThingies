@@ -2,7 +2,6 @@ import sys
 sys.path.append("..")
 import fmt
 import yaml
-import datetime
 import argparse
 from functools import partial
 from winthingies.filter import Filter
@@ -18,26 +17,16 @@ class EventHandler(object):
     def custom_format(self, record):
         return fmt(self.output_format)
 
-    def event_callback(self, event_dict):
-        if self.event_filter:
-            # Format TimeStamp
-            timestamp = datetime.datetime(1601, 1, 1) + datetime.timedelta(
-                microseconds=event_dict["TimeStamp"] / 10
-            )
-            event_dict["TimeStamp"] = timestamp.isoformat(" ")
+    def event_callback(self, lp_event_record):
+        event_dict = lp_event_record.contents.as_dict()
 
+        if self.event_filter:
             if self.event_filter.is_true(event_dict):
                 if self.output_format:
                     print(self.custom_format(event_dict))
                 else:
                     print(event_dict)
         else:
-            # Format TimeStamp
-            timestamp = datetime.datetime(1601, 1, 1) + datetime.timedelta(
-                microseconds=event_dict["TimeStamp"] / 10
-            )
-            event_dict["TimeStamp"] = timestamp.isoformat(" ")
-
             if self.output_format:
                 print(self.custom_format(event_dict))
             else:

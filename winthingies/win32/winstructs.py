@@ -311,6 +311,61 @@ class EVENT_RECORD(Structure):
         ('UserContext', PVOID)
     ]
 
+    @property
+    def TraceEventInfo(self):
+        trace_event_info = ctypes.POINTER(
+            TRACE_EVENT_INFO
+        )()
+        buffer_size = DWORD()
+
+        # Call TdhGetEventInformation once to get the required buffer size and again to actually populate the structure.
+        status = tdh.TdhGetEventInformation(
+            self,
+            0,
+            None,
+            None,
+            ctypes.byref(buffer_size)
+        )
+        if ERROR_INSUFFICIENT_BUFFER == status:
+            trace_event_info = ctypes.cast(
+                (ctypes.c_byte * buffer_size.value)(),
+                ctypes.POINTER(TRACE_EVENT_INFO)
+            )
+            status = tdh.TdhGetEventInformation(
+                self,
+                0,
+                None,
+                trace_event_info,
+                ctypes.byref(buffer_size)
+            )
+
+        if ERROR_SUCCESS != status:
+            raise ctypes.WinError(status)
+
+        return trace_event_info.contents
+
+    @property
+    def Properties(self):
+        trace_event_info = self.TraceEventInfo
+        for event_property_info in trace_event_info.iter_properties():
+            prop_name = event_property_info.get_property_name(
+                trace_event_info
+            )
+
+            prop_data = event_property_info.get_property_data(
+                self,
+                trace_event_info
+            )
+
+            yield prop_name, prop_data
+
+    def as_dict(self):
+        info = {
+            "EventHeader": self.EventHeader.as_dict(),
+            "EventInfo": self.TraceEventInfo.as_dict(),
+            "Properties": dict(self.Properties)
+        }
+        return info
 
 # https://docs.microsoft.com/en-us/windows/desktop/api/evntrace/ns-evntrace-event_trace_header
 # Class
@@ -532,6 +587,150 @@ class EVENT_PROPERTY_INFO(Structure):
         ('epi_u4', EpiU4)
     ]
 
+    def get_event_map_info(self, event_record, event_info):
+        """
+        When parsing a field in the event property structure, there may be a mapping between a given
+        name and the structure it represents. If it exists, we retrieve that mapping here.
+
+        Because this may legitimately return a NULL value we return a tuple containing the success or
+        failure status as well as either None (NULL) or an EVENT_MAP_INFO pointer.
+
+        :param self: The EVENT_PROPERTY_INFO structure for the TopLevelProperty of the event we are parsing
+        :param event_record: The EventRecord structure for the event we are parsing
+        :param event_info: The TraceEventInfo structure for the event we are parsing
+        :return: A tuple of the map_info structure and boolean indicating whether we succeeded or not
+        """
+        map_name = rel_ptr_to_str(
+            pointer(event_info),
+            self.epi_u1.nonStructType.MapNameOffset
+        )
+        map_size = DWORD()
+        map_info = ctypes.POINTER(EVENT_MAP_INFO)()
+
+        status = tdh.TdhGetEventMapInformation(
+            event_record,
+            map_name,
+            None,
+            ctypes.byref(map_size)
+        )
+        if ERROR_INSUFFICIENT_BUFFER == status:
+            map_info = ctypes.cast(
+                (ctypes.c_char * map_size.value)(),
+                ctypes.POINTER(EVENT_MAP_INFO)
+            )
+            status = tdh.TdhGetEventMapInformation(
+                event_record,
+                map_name,
+                map_info,
+                ctypes.byref(map_size)
+            )
+
+        if ERROR_SUCCESS == status:
+            return map_info, True
+
+        # ERROR_NOT_FOUND is actually a perfectly acceptable status
+        if ERROR_NOT_FOUND == status:
+            return None, True
+
+        # We actually failed.
+        raise ctypes.WinError()
+
+    def get_property_name(self, event_info):
+        """Get the name for a property.
+
+        :param trace_event_info: TRACE_EVENT_INFO
+        :return: (str)
+        """
+        name_field = rel_ptr_to_str(
+            pointer(event_info),
+            self.NameOffset
+        )
+        return name_field
+
+    def get_property_data(self, event_record, event_info):
+        if self.Flags & PropertyStruct:
+            LOGGER.info(
+                "EVENT_PROPERTY_INFO. Flag of type PropertyStruct is not yet supported."
+            )
+        else:
+            # The format of the property data
+            in_type = self.epi_u1.nonStructType.InType
+
+            # Create PROPERTY_DATA_DESCRIPTOR
+            data_descriptor = PROPERTY_DATA_DESCRIPTOR()
+
+            data_descriptor.PropertyName = (
+                    ctypes.cast(pointer(event_info), ctypes.c_voidp).value +
+                    self.NameOffset
+            )
+            data_descriptor.ArrayIndex = MAX_UINT
+
+            property_data_length = DWORD()
+
+            status = tdh.TdhGetPropertySize(
+                pointer(event_record),
+                0,
+                None,
+                1,
+                ctypes.byref(data_descriptor),
+                ctypes.byref(property_data_length)
+            )
+            if status != ERROR_SUCCESS:
+                raise WindowsError(
+                    status, ctypes.FormatError(status)
+                )
+
+            if property_data_length.value == 0:
+                return None
+
+            property_buffer = ctypes.cast(
+                (ctypes.c_byte * property_data_length.value)(),
+                ctypes.POINTER(ctypes.c_byte)
+            )
+
+            status = tdh.TdhGetProperty(
+                pointer(event_record),
+                0,
+                None,
+                1,
+                ctypes.byref(data_descriptor),
+                property_data_length.value,
+                property_buffer
+            )
+
+            if status != ERROR_SUCCESS:
+                raise WindowsError(
+                    status, ctypes.FormatError(status)
+                )
+
+            return get_formatted_value(
+                in_type,
+                property_buffer
+            )
+
+    def get_property_length(self, event_record, event_info):
+        data_descriptor = PROPERTY_DATA_DESCRIPTOR()
+        length = DWORD()
+
+        data_descriptor.PropertyName = (
+                ctypes.cast(event_info, ctypes.c_voidp).value +
+                self.NameOffset
+        )
+        data_descriptor.ArrayIndex = MAX_UINT
+
+        status = tdh.TdhGetPropertySize(
+            event_record,
+            0,
+            None,
+            1,
+            ctypes.byref(data_descriptor),
+            ctypes.byref(length)
+        )
+        if status != ERROR_SUCCESS:
+            raise ctypes.WinError(status)
+
+        return length.value
+
 
 class TRACE_EVENT_INFO(Structure):
     _fields_ = [
@@ -557,6 +756,78 @@ class TRACE_EVENT_INFO(Structure):
         ('EventPropertyInfoArray', EVENT_PROPERTY_INFO * 0)
     ]
 
+    @property
+    def ProviderName(self):
+        if self.ProviderNameOffset > 0:
+            return rel_ptr_to_str(
+                pointer(self),
+                self.ProviderNameOffset
+            )
+        return ""
+
+    @property
+    def LevelName(self):
+        if self.LevelNameOffset > 0:
+            return rel_ptr_to_str(
+                pointer(self),
+                self.LevelNameOffset
+            )
+        return ""
+
+    @property
+    def ChannelName(self):
+        if self.ChannelNameOffset > 0:
+            return rel_ptr_to_str(
+                pointer(self),
+                self.ChannelNameOffset
+            )
+        return ""
+
+    @property
+    def KeywordsName(self):
+        if self.KeywordsNameOffset > 0:
+            return rel_ptr_to_str(
+                pointer(self),
+                self.KeywordsNameOffset
+            )
+        return ""
+
+    @property
+    def TaskName(self):
+        if self.TaskNameOffset > 0:
+            return rel_ptr_to_str(
+                pointer(self),
+                self.TaskNameOffset
+            )
+        return ""
+
+    @property
+    def OpcodeName(self):
+        if self.OpcodeNameOffset > 0:
+            return rel_ptr_to_str(
+                pointer(self),
+                self.OpcodeNameOffset
+            )
+        return ""
+
+    @property
+    def EventMessage(self):
+        if self.EventMessageOffset > 0:
+            return rel_ptr_to_str(
+                pointer(self),
+                self.EventMessageOffset
+            )
+        return ""
+
+    @property
+    def ProviderMessage(self):
+        if self.ProviderMessageOffset > 0:
+            return rel_ptr_to_str(
+                pointer(self),
+                self.ProviderMessageOffset
+            )
+        return ""
+
     def iter_properties(self):
         property_array = ctypes.cast(
             self.EventPropertyInfoArray,
@@ -566,6 +837,20 @@ class TRACE_EVENT_INFO(Structure):
         for i in range(self.TopLevelPropertyCount):
             event_property_info = property_array[i]
             yield event_property_info
+
+    def as_dict(self):
+        return {
+            "ProviderGuid": str(self.ProviderGuid),
+            "EventGuid": str(self.EventGuid),
+            "ProviderName": self.ProviderName,
+            "LevelName": self.LevelName,
+            "ChannelName": self.ChannelName,
+            "KeywordsName": self.KeywordsName,
+            "TaskName": self.TaskName,
+            "OpcodeName": self.OpcodeName,
+            "EventMessage": self.EventMessage,
+            "ProviderMessage": self.ProviderMessage,
+        }
 
 
 class TDH_CONTEXT(Structure):
@@ -656,3 +941,6 @@ class EVT_VARIANT(Structure):
         ("Type", DWORD),
 ]
 PEVT_VARIANT = POINTER(EVT_VARIANT)
+
+# Because the following packages rely on winstructs, we import them at the end
+from winthingies.win32.tdh import tdh

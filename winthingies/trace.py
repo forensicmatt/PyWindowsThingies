@@ -3,7 +3,6 @@ import ujson
 import ctypes
 import logging
 import threading
-from winthingies.mappings import PublisherMapping
 from winthingies.win32.const import *
 from winthingies.win32.winstructs import *
 from winthingies.win32 import advapi32
@@ -57,7 +56,6 @@ class TraceConsumer(threading.Thread):
 
         :return: (None)
         """
-        self._publisher_mapping = PublisherMapping()
         self._trace_handle = advapi32.OpenTraceW(
             ctypes.byref(self._event_trace_logfile)
         )
@@ -96,49 +94,10 @@ class TraceConsumer(threading.Thread):
         :param event_record: (EVENT_RECORD)
         :return: (None)
         """
-        event_information = event_record.contents.get_event_information()
-
-        # This is how we can get the raw record if we wanted to run re filters to
-        # decide which events get processed. (for future use but left commented
-        # as a note)
-        # event_data = b''.join(
-        #     [ctypes.cast(event_record.contents.UserData + i, PBYTE).contents
-        #       for i in range(event_record.contents.UserDataLength)]
-        # )
-
-        this = event_record.contents.EventHeader.as_dict()
-        this['EventDescriptor']['Keyword'] = self._publisher_mapping.get_keyword_name(
-            event_information.contents.ProviderGuid,
-            event_information.contents.EventDescriptor.Keyword
-        )
-        this['EventDescriptor']['Opcode'] = self._publisher_mapping.get_opcode_name(
-            event_information.contents.ProviderGuid,
-            event_information.contents.EventDescriptor.Opcode
-        )
-        this['EventDescriptor']['Task'] = self._publisher_mapping.get_task_name(
-            event_information.contents.ProviderGuid,
-            event_information.contents.EventDescriptor.Task
-        )
-
-        for event_property_info in event_information.contents.iter_properties():
-            name = event_property_info.get_property_name(
-                event_information
-            )
-
-            try:
-                data = event_property_info.get_property_data(
-                    event_record,
-                    event_information
-                )
-            except Exception as error:
-                data = None
-
-            this[name] = data
-
         if self._callback:
-            self._callback(this)
+            self._callback(event_record)
         else:
-            print(ujson.dumps(this))
+            print(ujson.dumps(event_record.as_dict()))
 
 
 class TraceProperties(object):

@@ -107,10 +107,11 @@ class UserAssistMonitor(object):
         explorer_process = list(iterate_processes(name="explorer.exe"))[0]
         self._format_str = format_str
         # Set the PID of explorer.exe
-        self.pid = explorer_process.pid
+        self.pid = explorer_process.th32ProcessID
+
         # This key mapping maps the open UserAssist handles
         self.key_mapping = {}
-        for handle in iterate_handles(pid=explorer_process.pid):
+        for handle in iterate_handles(pid=self.pid):
             if handle.type_name == "Key":
                 if "UserAssist" in handle.name:
                     # Get the starting index of start of the Software path
@@ -138,27 +139,25 @@ class UserAssistMonitor(object):
     def custom_format(self, record):
         return fmt(self._format_str)
 
-    def event_callback(self, event_dict):
-        # Only look at events with the explorer.exe PID
-        if event_dict["ProcessId"] == self.pid:
-            # Only look at events where the key handle is a known UserAssist handle
-            if "KeyObject" in event_dict:
-                if event_dict["KeyObject"] in self.key_mapping:
-                    # Format TimeStamp
-                    timestamp = datetime.datetime(1601, 1, 1) + datetime.timedelta(
-                        microseconds=event_dict["TimeStamp"] / 10
-                    )
-                    event_dict["TimeStamp"] = timestamp.isoformat(" ")
+    def event_callback(self, lp_event_record):
+        event_record = lp_event_record.contents
 
+        # Only look at events with the explorer.exe PID
+        if event_record.EventHeader.ProcessId == self.pid:
+            event_dict = event_record.as_dict()
+
+            # Only look at events where the key handle is a known UserAssist handle
+            if "KeyObject" in event_dict["Properties"]:
+                if event_dict["Properties"]["KeyObject"] in self.key_mapping:
                     # Get Key path and handle from our key mapping
-                    key_path = self.key_mapping[event_dict["KeyObject"]]["name"]
-                    key_handle = self.key_mapping[event_dict["KeyObject"]]["handle"]
+                    key_path = self.key_mapping[event_dict["Properties"]["KeyObject"]]["name"]
+                    key_handle = self.key_mapping[event_dict["Properties"]["KeyObject"]]["handle"]
 
                     # Enumerate some values
-                    event_dict["ValueNameDecoded"] = codecs.decode(event_dict["ValueName"], 'rot-13')
+                    event_dict["ValueNameDecoded"] = codecs.decode(event_dict["Properties"]["ValueName"], 'rot-13')
                     event_dict["ValueFullPath"] = "{}\\{}".format(
                         key_path,
-                        event_dict["ValueName"]
+                        event_dict["Properties"]["ValueName"]
                     )
                     event_dict["ValueNameDecoded"] = "{}\\{}".format(
                         key_path,
@@ -168,7 +167,7 @@ class UserAssistMonitor(object):
                     # Query Registry data
                     value_data, value_type = win32api.RegQueryValueEx(
                         key_handle,
-                        event_dict["ValueName"]
+                        event_dict["Properties"]["ValueName"]
                     )
 
                     # Parse UserAssist data
